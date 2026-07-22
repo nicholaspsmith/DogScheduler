@@ -6,6 +6,7 @@ import { fetchChecks, postOps } from './api'
 import { createSyncStore, type SyncStatus } from './syncStore'
 import MonthGrid from './MonthGrid'
 import DayDetail from './DayDetail'
+import Supply from './Supply'
 import TokenSetup from './TokenSetup'
 
 const STATUS_LABEL: Record<SyncStatus, string> = {
@@ -96,6 +97,7 @@ function App() {
           }}
         />
         <DayDetail date={selected()} store={store} />
+        <Supply store={store} />
       </Show>
     </main>
   )

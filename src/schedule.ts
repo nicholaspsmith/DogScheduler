@@ -33,6 +33,9 @@ interface Med {
   doseText: string
   phases?: Phase[]
   monthly?: Monthly
+  // Present only for finite pill-based courses; drives the supply section.
+  unitsPerDose?: number
+  unitLabel?: string
 }
 
 // Schedule per vet instructions; canonical expansion is pinned by
@@ -42,6 +45,8 @@ export const MEDS: Med[] = [
     id: 'prednisone',
     name: 'Prednisone',
     doseText: '2 tablets by mouth',
+    unitsPerDose: 2,
+    unitLabel: 'tablets',
     phases: [
       { start: '2026-07-21', startSlot: 'pm', intervalSlots: 1, count: 10 },
       { start: '2026-07-27', startSlot: 'am', intervalSlots: 2, count: 5 },
@@ -52,12 +57,16 @@ export const MEDS: Med[] = [
     id: 'clindamycin',
     name: 'Clindamycin',
     doseText: '3 capsules by mouth',
+    unitsPerDose: 3,
+    unitLabel: 'capsules',
     phases: [{ start: '2026-07-21', startSlot: 'pm', intervalSlots: 1, count: 28 }],
   },
   {
     id: 'fluconazole',
     name: 'Fluconazole',
     doseText: '4 tablets by mouth',
+    unitsPerDose: 4,
+    unitLabel: 'tablets',
     phases: [{ start: '2026-07-23', startSlot: 'am', intervalSlots: 2, count: 21 }],
   },
   {
@@ -108,6 +117,34 @@ function monthlyDoseForDay(med: Med, date: string): Dose | null {
   if (date < rule.start) return null
   if (parseDateStr(date).d !== rule.dayOfMonth) return null
   return makeDose(med, date, rule.slot)
+}
+
+export interface PillInventory {
+  medId: string
+  medName: string
+  unitsPerDose: number
+  unitLabel: string
+  totalUnits: number
+  doseIds: string[] // every dose of the course, in schedule order
+}
+
+// Finite pill-based courses only; indefinite or non-pill meds have no
+// meaningful remaining-count and are omitted.
+export function pillInventories(): PillInventory[] {
+  const result: PillInventory[] = []
+  for (const med of MEDS) {
+    if (med.unitsPerDose === undefined || med.unitLabel === undefined) continue
+    const doses = (med.phases ?? []).flatMap((phase) => phaseDoses(med, phase))
+    result.push({
+      medId: med.id,
+      medName: med.name,
+      unitsPerDose: med.unitsPerDose,
+      unitLabel: med.unitLabel,
+      totalUnits: med.unitsPerDose * doses.length,
+      doseIds: doses.map((d) => d.id),
+    })
+  }
+  return result
 }
 
 export function dosesForDay(date: string): Dose[] {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { dosesForDay, type Dose } from './schedule'
+import { dosesForDay, pillInventories, type Dose } from './schedule'
 import { addDays } from './dates'
 
 // Collect every dose in an inclusive date range (ISO strings compare correctly).
@@ -80,6 +80,32 @@ describe('dose identity and shape', () => {
   })
   it('day before any schedule is empty', () => {
     expect(dosesForDay('2026-07-20')).toEqual([])
+  })
+})
+
+describe('pillInventories', () => {
+  it('covers exactly the finite pill-based courses, in med order', () => {
+    expect(pillInventories().map((i) => i.medId)).toEqual([
+      'prednisone', 'clindamycin', 'fluconazole',
+    ])
+  })
+  it('computes totals from the schedule: 40 tablets, 84 capsules, 84 tablets', () => {
+    const byId = Object.fromEntries(pillInventories().map((i) => [i.medId, i]))
+    expect(byId.prednisone).toMatchObject({
+      medName: 'Prednisone', unitsPerDose: 2, unitLabel: 'tablets', totalUnits: 40,
+    })
+    expect(byId.clindamycin).toMatchObject({
+      medName: 'Clindamycin', unitsPerDose: 3, unitLabel: 'capsules', totalUnits: 84,
+    })
+    expect(byId.fluconazole).toMatchObject({
+      medName: 'Fluconazole', unitsPerDose: 4, unitLabel: 'tablets', totalUnits: 84,
+    })
+  })
+  it('lists every dose id of the course, first to last', () => {
+    const pred = pillInventories().find((i) => i.medId === 'prednisone')!
+    expect(pred.doseIds).toHaveLength(20)
+    expect(pred.doseIds[0]).toBe('prednisone:2026-07-21:pm')
+    expect(pred.doseIds.at(-1)).toBe('prednisone:2026-08-10:am')
   })
 })
 
