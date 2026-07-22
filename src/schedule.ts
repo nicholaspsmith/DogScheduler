@@ -1,4 +1,4 @@
-import { addDays } from './dates'
+import { addDays, parseDateStr } from './dates'
 
 export type Slot = 'am' | 'pm'
 
@@ -96,6 +96,14 @@ function phaseDoses(med: Med, phase: Phase): Dose[] {
   return doses
 }
 
+function monthlyDoseForDay(med: Med, date: string): Dose | null {
+  const rule = med.monthly
+  if (!rule) return null
+  if (date < rule.start) return null
+  if (parseDateStr(date).d !== rule.dayOfMonth) return null
+  return makeDose(med, date, rule.slot)
+}
+
 export function dosesForDay(date: string): Dose[] {
   const result: Dose[] = []
   for (const med of MEDS) {
@@ -104,6 +112,8 @@ export function dosesForDay(date: string): Dose[] {
         if (dose.date === date) result.push(dose)
       }
     }
+    const monthly = monthlyDoseForDay(med, date)
+    if (monthly) result.push(monthly)
   }
   return result
 }

@@ -82,3 +82,28 @@ describe('dose identity and shape', () => {
     expect(dosesForDay('2026-07-20')).toEqual([])
   })
 })
+
+describe('heartworm monthly rule', () => {
+  it('PM on the 14th from Aug 2026 onward', () => {
+    const doses = byMed('heartworm', dosesInRange('2026-07-01', '2026-10-31'))
+    expect(keys(doses)).toEqual(['2026-08-14:pm', '2026-09-14:pm', '2026-10-14:pm'])
+  })
+  it('does not fire on Jul 14, 2026 (before rule start)', () => {
+    expect(byMed('heartworm', dosesForDay('2026-07-14'))).toHaveLength(0)
+  })
+  it('continues indefinitely', () => {
+    expect(byMed('heartworm', dosesForDay('2030-03-14'))).toHaveLength(1)
+  })
+})
+
+describe('adequan monthly tail', () => {
+  it('is day-of-month (11th), not every-28-days', () => {
+    const doses = byMed('adequan', dosesInRange('2026-09-01', '2026-11-30'))
+    expect(keys(doses)).toEqual(['2026-09-11:pm', '2026-10-11:pm', '2026-11-11:pm'])
+    expect(byMed('adequan', dosesForDay('2026-09-08'))).toHaveLength(0)
+  })
+  it('weekly phase and monthly tail do not overlap in August', () => {
+    // Monthly starts Sep 11; Aug 11 comes only from the weekly phase.
+    expect(byMed('adequan', dosesForDay('2026-08-11'))).toHaveLength(1)
+  })
+})
