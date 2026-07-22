@@ -31,6 +31,13 @@ export function formatDateLong(date: string): string {
   })
 }
 
+export function monthLabel(y: number, m: number): string {
+  return new Date(y, m - 1, 1).toLocaleDateString(undefined, {
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
 export function daysInMonth(y: number, m: number): number {
   return new Date(y, m, 0).getDate()
 }
