@@ -1,10 +1,14 @@
 import './App.css'
+import { todayStr } from './dates'
+import { getLocalStorage } from './storage'
+import { createChecksStore } from './store'
+import DayDetail from './DayDetail'
 
 function App() {
+  const store = createChecksStore(getLocalStorage())
   return (
     <main>
-      <h1>Hello, world!</h1>
-      <p>DogScheduler is coming soon.</p>
+      <DayDetail date={todayStr()} store={store} />
     </main>
   )
 }

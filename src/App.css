@@ -1,8 +1,48 @@
 main {
-  min-height: 100vh;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 12px;
+}
+
+.day-detail h2 {
+  font-size: 1.1rem;
+  margin: 16px 0 4px;
+}
+
+.slot-section h3 {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  margin: 12px 0 4px;
+}
+
+.dose-row {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  text-align: center;
+  gap: 10px;
+  min-height: 44px; /* comfortable touch target */
+  padding: 0 4px;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  cursor: pointer;
+}
+
+.dose-row input[type='checkbox'] {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  accent-color: #2e9e44;
+}
+
+.dose-name {
+  font-weight: 600;
+}
+
+.dose-text {
+  opacity: 0.7;
+  font-size: 0.9rem;
+}
+
+.no-doses {
+  opacity: 0.6;
 }
