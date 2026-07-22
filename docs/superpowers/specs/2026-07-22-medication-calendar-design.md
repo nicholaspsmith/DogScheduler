@@ -48,6 +48,12 @@ The three PM Jul 21 doses were given before the app existed; they appear on the
 calendar unchecked and the user taps them once to record them. No pre-seeded
 data.
 
+## Addendum: medications added after initial design
+
+- **Fluconazole** (added 2026-07-22): 4 tablets by mouth, every 24h × 21
+  days, AM slot, Jul 23 – Aug 12, 2026 (21 doses). Vet instruction:
+  "starting tomorrow" relative to Jul 22.
+
 ## UI
 
 Single screen, phone-first. Layout chosen from mockups: **month grid + day

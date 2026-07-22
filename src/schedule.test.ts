@@ -83,6 +83,24 @@ describe('dose identity and shape', () => {
   })
 })
 
+describe('fluconazole (4 tablets/dose)', () => {
+  it('yields exactly 21 AM doses, Jul 23 through Aug 12, nothing outside', () => {
+    const doses = byMed('fluconazole', WINDOW())
+    expect(doses).toHaveLength(21)
+    expect(doses.every((d) => d.slot === 'am')).toBe(true)
+    expect(keys(doses)[0]).toBe('2026-07-23:am')
+    expect(keys(doses).at(-1)).toBe('2026-08-12:am')
+    expect(byMed('fluconazole', dosesForDay('2026-07-22'))).toHaveLength(0)
+    expect(byMed('fluconazole', dosesForDay('2026-08-13'))).toHaveLength(0)
+  })
+  it('doses on consecutive days with correct display fields', () => {
+    const dose = byMed('fluconazole', dosesForDay('2026-07-30'))[0]
+    expect(dose.medName).toBe('Fluconazole')
+    expect(dose.doseText).toBe('4 tablets by mouth')
+    expect(dose.id).toBe('fluconazole:2026-07-30:am')
+  })
+})
+
 describe('heartworm monthly rule', () => {
   it('PM on the 14th from Aug 2026 onward', () => {
     const doses = byMed('heartworm', dosesInRange('2026-07-01', '2026-10-31'))

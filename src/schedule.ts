@@ -55,6 +55,12 @@ export const MEDS: Med[] = [
     phases: [{ start: '2026-07-21', startSlot: 'pm', intervalSlots: 1, count: 28 }],
   },
   {
+    id: 'fluconazole',
+    name: 'Fluconazole',
+    doseText: '4 tablets by mouth',
+    phases: [{ start: '2026-07-23', startSlot: 'am', intervalSlots: 2, count: 21 }],
+  },
+  {
     id: 'heartworm',
     name: 'Heartworm',
     doseText: '1 dose',
