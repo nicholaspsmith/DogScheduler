@@ -1,14 +1,14 @@
 import { For, Index } from 'solid-js'
 import { dosesForDay } from './schedule'
 import { toDateStr, daysInMonth, firstWeekday, monthLabel } from './dates'
-import type { ChecksStore } from './store'
+import type { SyncStore } from './syncStore'
 
 interface Props {
   year: number
   month: number // 1-12
   selected: string
   today: string
-  store: ChecksStore
+  store: SyncStore
   onSelect(date: string): void
   onPrev(): void
   onNext(): void

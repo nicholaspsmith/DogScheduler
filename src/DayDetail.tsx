@@ -1,9 +1,9 @@
 import { For, Show } from 'solid-js'
 import { dosesForDay, type Dose } from './schedule'
 import { formatDateLong } from './dates'
-import type { ChecksStore } from './store'
+import type { SyncStore } from './syncStore'
 
-function SlotSection(props: { label: string; doses: Dose[]; store: ChecksStore }) {
+function SlotSection(props: { label: string; doses: Dose[]; store: SyncStore }) {
   return (
     <Show when={props.doses.length > 0}>
       <section class="slot-section">
@@ -26,7 +26,7 @@ function SlotSection(props: { label: string; doses: Dose[]; store: ChecksStore }
   )
 }
 
-export default function DayDetail(props: { date: string; store: ChecksStore }) {
+export default function DayDetail(props: { date: string; store: SyncStore }) {
   const doses = () => dosesForDay(props.date)
   return (
     <div class="day-detail">

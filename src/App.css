@@ -142,3 +142,68 @@ h1 {
   border-color: #2e9e44;
   background: #2e9e44; /* green filled */
 }
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sync-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: none;
+  color: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.sync-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #9a9aa2;
+}
+
+.sync-chip[data-status='synced'] .sync-dot {
+  background: #2e9e44;
+}
+
+.sync-chip[data-status='syncing'] .sync-dot {
+  background: #4a7dff;
+}
+
+.sync-chip[data-status='offline'] .sync-dot {
+  background: #d64545;
+}
+
+.token-setup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20vh;
+}
+
+.token-setup input {
+  font: inherit;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-radius: 8px;
+  background: none;
+  color: inherit;
+}
+
+.token-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.token-actions .today-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
