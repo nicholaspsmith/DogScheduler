@@ -1,6 +1,11 @@
 # DogScheduler
 
-A web app built with [SolidJS](https://solidjs.com/) and [Vite](https://vite.dev/).
+Medication calendar for a dog: a month grid with per-day AM/PM dose
+checklists. Checked doses persist in the browser's localStorage. Schedules
+live as declarative rules in `src/schedule.ts`; the design spec is in
+`docs/superpowers/specs/2026-07-22-medication-calendar-design.md`.
+
+Built with [SolidJS](https://solidjs.com/) and [Vite](https://vite.dev/).
 
 **Live site:** https://nicholaspsmith.github.io/DogScheduler/
 
