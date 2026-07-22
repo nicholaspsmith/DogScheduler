@@ -1,9 +1,12 @@
 # DogScheduler
 
 Medication calendar for a dog: a month grid with per-day AM/PM dose
-checklists. Checked doses persist in the browser's localStorage. Schedules
-live as declarative rules in `src/schedule.ts`; the design spec is in
-`docs/superpowers/specs/2026-07-22-medication-calendar-design.md`.
+checklists. Checks sync across devices through a Cloudflare Worker + KV
+backend (`worker/`) guarded by a shared sync token; each device keeps a
+localStorage cache and an offline op queue, so checking off a dose never
+waits on the network. Installable as a PWA (Add to Home Screen).
+Schedules live as declarative rules in `src/schedule.ts`; design specs are
+in `docs/superpowers/specs/`.
 
 Built with [SolidJS](https://solidjs.com/) and [Vite](https://vite.dev/).
 
@@ -22,6 +25,19 @@ npm run preview  # preview the production build
 
 Pushes to `main` are automatically built and deployed to GitHub Pages via
 `.github/workflows/deploy.yml`.
+
+## Sync backend
+
+The Worker lives in `worker/` and deploys manually:
+
+```sh
+cd worker && wrangler deploy
+```
+
+One-time provisioning was: `wrangler login`, `wrangler kv namespace create
+KV` (id goes in `worker/wrangler.toml`), `wrangler secret put SYNC_TOKEN`
+(a random token, also pasted into each device via the app's setup screen).
+The Worker URL is hardcoded in `src/config.ts`.
 
 ## License
 
