@@ -13,7 +13,7 @@ export interface Dose {
 
 // A run of evenly spaced doses. Spacing is measured in half-day slots:
 // 12h = 1, 24h = 2, 48h = 4, weekly = 14.
-interface Phase {
+export interface Phase {
   start: string
   startSlot: Slot
   intervalSlots: number
@@ -21,13 +21,13 @@ interface Phase {
 }
 
 // Indefinite day-of-month rule, active from `start` (inclusive).
-interface Monthly {
+export interface Monthly {
   dayOfMonth: number
   slot: Slot
   start: string
 }
 
-interface Med {
+export interface MedDef {
   id: string
   name: string
   doseText: string
@@ -40,7 +40,7 @@ interface Med {
 
 // Schedule per vet instructions; canonical expansion is pinned by
 // docs/superpowers/specs/2026-07-22-medication-calendar-design.md.
-export const MEDS: Med[] = [
+export const SEED_MEDS: MedDef[] = [
   {
     id: 'prednisone',
     name: 'Prednisone',
@@ -88,7 +88,7 @@ export function doseId(medId: string, date: string, slot: Slot): string {
   return `${medId}:${date}:${slot}`
 }
 
-function makeDose(med: Med, date: string, slot: Slot): Dose {
+function makeDose(med: MedDef, date: string, slot: Slot): Dose {
   return {
     id: doseId(med.id, date, slot),
     medId: med.id,
@@ -99,7 +99,7 @@ function makeDose(med: Med, date: string, slot: Slot): Dose {
   }
 }
 
-function phaseDoses(med: Med, phase: Phase): Dose[] {
+export function expandPhase(med: MedDef, phase: Phase): Dose[] {
   const doses: Dose[] = []
   const base = phase.startSlot === 'pm' ? 1 : 0
   for (let i = 0; i < phase.count; i++) {
@@ -111,7 +111,11 @@ function phaseDoses(med: Med, phase: Phase): Dose[] {
   return doses
 }
 
-function monthlyDoseForDay(med: Med, date: string): Dose | null {
+export function expandMed(med: MedDef): Dose[] {
+  return (med.phases ?? []).flatMap((phase) => expandPhase(med, phase))
+}
+
+function monthlyDoseForDay(med: MedDef, date: string): Dose | null {
   const rule = med.monthly
   if (!rule) return null
   if (date < rule.start) return null
@@ -130,11 +134,11 @@ export interface PillInventory {
 
 // Finite pill-based courses only; indefinite or non-pill meds have no
 // meaningful remaining-count and are omitted.
-export function pillInventories(): PillInventory[] {
+export function pillInventories(meds: MedDef[]): PillInventory[] {
   const result: PillInventory[] = []
-  for (const med of MEDS) {
+  for (const med of meds) {
     if (med.unitsPerDose === undefined || med.unitLabel === undefined) continue
-    const doses = (med.phases ?? []).flatMap((phase) => phaseDoses(med, phase))
+    const doses = expandMed(med)
     result.push({
       medId: med.id,
       medName: med.name,
@@ -147,13 +151,11 @@ export function pillInventories(): PillInventory[] {
   return result
 }
 
-export function dosesForDay(date: string): Dose[] {
+export function dosesForDay(meds: MedDef[], date: string): Dose[] {
   const result: Dose[] = []
-  for (const med of MEDS) {
-    for (const phase of med.phases ?? []) {
-      for (const dose of phaseDoses(med, phase)) {
-        if (dose.date === date) result.push(dose)
-      }
+  for (const med of meds) {
+    for (const dose of expandMed(med)) {
+      if (dose.date === date) result.push(dose)
     }
     const monthly = monthlyDoseForDay(med, date)
     if (monthly) result.push(monthly)

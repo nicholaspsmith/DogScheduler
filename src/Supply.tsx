@@ -1,10 +1,10 @@
 import { For } from 'solid-js'
-import { pillInventories } from './schedule'
+import { pillInventories, SEED_MEDS } from './schedule'
 import type { SyncStore } from './syncStore'
 
 export default function Supply(props: { store: SyncStore }) {
   const rows = () =>
-    pillInventories().map((inv) => {
+    pillInventories(SEED_MEDS).map((inv) => {
       const taken = inv.doseIds.filter((id) => props.store.isChecked(id)).length
       return {
         medId: inv.medId,

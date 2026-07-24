@@ -1,5 +1,5 @@
 import { For, Index } from 'solid-js'
-import { dosesForDay } from './schedule'
+import { dosesForDay, SEED_MEDS } from './schedule'
 import { toDateStr, daysInMonth, firstWeekday, monthLabel } from './dates'
 import type { SyncStore } from './syncStore'
 
@@ -53,7 +53,7 @@ export default function MonthGrid(props: Props) {
               >
                 <span class="day-num">{i + 1}</span>
                 <span class="dots">
-                  <For each={dosesForDay(date())}>
+                  <For each={dosesForDay(SEED_MEDS, date())}>
                     {(dose) => (
                       <span
                         classList={{
