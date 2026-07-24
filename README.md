@@ -5,8 +5,9 @@ checklists. Checks sync across devices through a Cloudflare Worker + KV
 backend (`worker/`) guarded by a shared sync token; each device keeps a
 localStorage cache and an offline op queue, so checking off a dose never
 waits on the network. Installable as a PWA (Add to Home Screen).
-Schedules live as declarative rules in `src/schedule.ts`; design specs are
-in `docs/superpowers/specs/`.
+Medications are managed in-app (Meds screen) and sync as data; the seed
+schedules live in `src/schedule.ts`. Design specs are in
+`docs/superpowers/specs/`.
 
 Built with [SolidJS](https://solidjs.com/) and [Vite](https://vite.dev/).
 
