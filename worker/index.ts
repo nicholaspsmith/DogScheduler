@@ -1,4 +1,4 @@
-import { applyOps, parseOps, type Checks } from './ops'
+import { applyState, parseOps, type Checks, type MedDef } from './ops'
 
 export interface Env {
   KV: KVNamespace
@@ -11,6 +11,7 @@ const ALLOWED_ORIGINS = new Set([
 ])
 
 const CHECKS_KEY = 'checks:v1'
+const MEDS_KEY = 'meds:v1'
 
 function corsHeaders(request: Request): Record<string, string> {
   const origin = request.headers.get('Origin') ?? ''
@@ -42,11 +43,17 @@ export default {
     }
 
     const url = new URL(request.url)
-    const load = async (): Promise<Checks> =>
+    const loadChecks = async (): Promise<Checks> =>
       (await env.KV.get(CHECKS_KEY, 'json')) ?? {}
+    const loadMeds = async (): Promise<MedDef[]> =>
+      (await env.KV.get(MEDS_KEY, 'json')) ?? []
 
     if (request.method === 'GET' && url.pathname === '/checks') {
-      return json(200, { checks: await load() }, cors)
+      return json(200, { checks: await loadChecks() }, cors)
+    }
+
+    if (request.method === 'GET' && url.pathname === '/state') {
+      return json(200, { checks: await loadChecks(), meds: await loadMeds() }, cors)
     }
 
     if (request.method === 'POST' && url.pathname === '/ops') {
@@ -60,9 +67,13 @@ export default {
       if (ops === null) {
         return json(400, { error: 'invalid ops' }, cors)
       }
-      const next = applyOps(await load(), ops)
-      await env.KV.put(CHECKS_KEY, JSON.stringify(next))
-      return json(200, { checks: next }, cors)
+      const before = { checks: await loadChecks(), meds: await loadMeds() }
+      const next = applyState(before, ops)
+      const hasCheckOps = ops.some((op) => op.op === 'check' || op.op === 'uncheck')
+      const hasMedOps = ops.some((op) => op.op === 'add-med' || op.op === 'delete-med')
+      if (hasCheckOps) await env.KV.put(CHECKS_KEY, JSON.stringify(next.checks))
+      if (hasMedOps) await env.KV.put(MEDS_KEY, JSON.stringify(next.meds))
+      return json(200, next, cors)
     }
 
     return json(404, { error: 'not found' }, cors)
