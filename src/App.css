@@ -240,3 +240,70 @@ h1 {
   color: #2e9e44;
   opacity: 1;
 }
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.med-row {
+  padding: 8px 4px;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.med-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.med-summary {
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.med-delete {
+  border: none;
+  background: none;
+  color: inherit;
+  opacity: 0.5;
+  font-size: 1rem;
+  cursor: pointer;
+  min-width: 44px;
+  min-height: 36px;
+}
+
+.med-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.danger-btn {
+  min-height: 36px;
+  border: 1px solid #d64545;
+  border-radius: 8px;
+  background: #d64545;
+  color: #fff;
+  font-size: 0.9rem;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.med-error {
+  width: 100%;
+  color: #d64545;
+  font-size: 0.85rem;
+  margin: 4px 0 0;
+}
+
+.med-notice {
+  opacity: 0.6;
+}

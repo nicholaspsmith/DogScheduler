@@ -7,6 +7,7 @@ import { createSyncStore, type SyncStatus } from './syncStore'
 import MonthGrid from './MonthGrid'
 import DayDetail from './DayDetail'
 import Supply from './Supply'
+import MedsView from './MedsView'
 import TokenSetup from './TokenSetup'
 
 const STATUS_LABEL: Record<SyncStatus, string> = {
@@ -23,6 +24,7 @@ function App() {
   const [selected, setSelected] = createSignal(today)
   const [view, setView] = createSignal({ y, m })
   const [setupOpen, setSetupOpen] = createSignal(!store.hasToken())
+  const [screen, setScreen] = createSignal<'calendar' | 'meds'>('calendar')
 
   onMount(() => {
     void store.start()
@@ -68,36 +70,46 @@ function App() {
           />
         }
       >
-        <header class="app-header">
-          <h1>DogScheduler</h1>
-          <button
-            type="button"
-            class="sync-chip"
-            data-status={store.status()}
-            onClick={() => {
-              if (store.status() === 'no-token') setSetupOpen(true)
-              else void store.sync()
+        <Show
+          when={screen() === 'calendar'}
+          fallback={<MedsView store={store} onBack={() => setScreen('calendar')} />}
+        >
+          <header class="app-header">
+            <h1>DogScheduler</h1>
+            <div class="header-actions">
+              <button type="button" class="nav-btn" onClick={() => setScreen('meds')}>
+                Meds
+              </button>
+              <button
+                type="button"
+                class="sync-chip"
+                data-status={store.status()}
+                onClick={() => {
+                  if (store.status() === 'no-token') setSetupOpen(true)
+                  else void store.sync()
+                }}
+              >
+                <span class="sync-dot" /> {statusLabel()}
+              </button>
+            </div>
+          </header>
+          <MonthGrid
+            year={view().y}
+            month={view().m}
+            selected={selected()}
+            today={today}
+            store={store}
+            onSelect={setSelected}
+            onPrev={() => shiftMonth(-1)}
+            onNext={() => shiftMonth(1)}
+            onToday={() => {
+              setView({ y, m })
+              setSelected(today)
             }}
-          >
-            <span class="sync-dot" /> {statusLabel()}
-          </button>
-        </header>
-        <MonthGrid
-          year={view().y}
-          month={view().m}
-          selected={selected()}
-          today={today}
-          store={store}
-          onSelect={setSelected}
-          onPrev={() => shiftMonth(-1)}
-          onNext={() => shiftMonth(1)}
-          onToday={() => {
-            setView({ y, m })
-            setSelected(today)
-          }}
-        />
-        <DayDetail date={selected()} store={store} />
-        <Supply store={store} />
+          />
+          <DayDetail date={selected()} store={store} />
+          <Supply store={store} />
+        </Show>
       </Show>
     </main>
   )
