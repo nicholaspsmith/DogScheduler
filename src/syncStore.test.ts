@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
-import { createSyncStore, TOKEN_KEY, QUEUE_KEY, MIGRATED_KEY } from './syncStore'
+import { createSyncStore, TOKEN_KEY, QUEUE_KEY, MIGRATED_KEY, MEDS_KEY } from './syncStore'
 import { CHECKS_KEY, type StorageLike, type Checks } from './storage'
 import { ApiError, type SyncOp } from './api'
+import { SEED_MEDS, type MedDef } from './schedule'
 
 function fakeStorage(initial: Record<string, string> = {}): StorageLike & { data: Map<string, string> } {
   const data = new Map(Object.entries(initial))
@@ -12,23 +13,25 @@ function fakeStorage(initial: Record<string, string> = {}): StorageLike & { data
   }
 }
 
-// Fake API backed by an in-memory server map with real op semantics.
-function fakeApi(serverInit: Checks = {}) {
-  let server = { ...serverInit }
+// Fake API backed by an in-memory server state with real op semantics.
+function fakeApi(checksInit: Checks = {}, medsInit: MedDef[] = []) {
+  let server = { checks: { ...checksInit }, meds: [...medsInit] }
   const api = {
     server: () => server,
     failNext: false,
-    fetchChecks: vi.fn(async () => {
+    fetchState: vi.fn(async () => {
       if (api.failNext) { api.failNext = false; throw new TypeError('network down') }
-      return { ...server }
+      return { checks: { ...server.checks }, meds: [...server.meds] }
     }),
     postOps: vi.fn(async (_token: string, ops: SyncOp[]) => {
       if (api.failNext) { api.failNext = false; throw new TypeError('network down') }
       for (const op of ops) {
-        if (op.op === 'check') { if (server[op.doseId] === undefined) server[op.doseId] = op.at }
-        else delete server[op.doseId]
+        if (op.op === 'check') { if (server.checks[op.doseId] === undefined) server.checks[op.doseId] = op.at }
+        else if (op.op === 'uncheck') delete server.checks[op.doseId]
+        else if (op.op === 'add-med') { if (!server.meds.some((m) => m.id === op.med.id)) server.meds.push(op.med) }
+        else server.meds = server.meds.filter((m) => m.id !== op.medId)
       }
-      return { ...server }
+      return { checks: { ...server.checks }, meds: [...server.meds] }
     }),
   }
   return api
@@ -44,7 +47,7 @@ describe('no token', () => {
     store.toggle(ID)
     expect(store.isChecked(ID)).toBe(true)
     expect(store.status()).toBe('no-token')
-    expect(api.fetchChecks).not.toHaveBeenCalled()
+    expect(api.fetchState).not.toHaveBeenCalled()
     expect(api.postOps).not.toHaveBeenCalled()
   })
 })
@@ -58,7 +61,7 @@ describe('toggle + flush', () => {
     store.toggle(ID)
     expect(store.isChecked(ID)).toBe(true) // before any await: optimistic
     await vi.waitFor(() => expect(store.status()).toBe('synced'))
-    expect(api.server()[ID]).toBeDefined()
+    expect(api.server().checks[ID]).toBeDefined()
     expect(store.pendingCount()).toBe(0)
     expect(JSON.parse(s.data.get(QUEUE_KEY)!)).toEqual([])
   })
@@ -73,10 +76,10 @@ describe('toggle + flush', () => {
     await vi.waitFor(() => expect(store.status()).toBe('offline'))
     expect(store.isChecked(ID)).toBe(true)      // still shown locally
     expect(store.pendingCount()).toBe(1)
-    expect(api.server()[ID]).toBeUndefined()
+    expect(api.server().checks[ID]).toBeUndefined()
     await store.sync()                           // network back
     expect(store.status()).toBe('synced')
-    expect(api.server()[ID]).toBeDefined()
+    expect(api.server().checks[ID]).toBeDefined()
     expect(store.pendingCount()).toBe(0)
   })
 
@@ -91,7 +94,7 @@ describe('toggle + flush', () => {
     await vi.waitFor(() => expect(store.pendingCount()).toBe(1))
     expect(store.isChecked(ID)).toBe(false)
     await store.sync()
-    expect(api.server()[ID]).toBeUndefined()
+    expect(api.server().checks[ID]).toBeUndefined()
     expect(store.isChecked(ID)).toBe(false)
   })
 })
@@ -114,7 +117,7 @@ describe('401 handling', () => {
   it('clears the token and reports no-token', async () => {
     const s = fakeStorage({ [TOKEN_KEY]: 'bad', [MIGRATED_KEY]: '1' })
     const api = fakeApi()
-    api.fetchChecks.mockRejectedValueOnce(new ApiError(401))
+    api.fetchState.mockRejectedValueOnce(new ApiError(401))
     const store = createSyncStore(s, api)
     await store.start()
     expect(store.status()).toBe('no-token')
@@ -131,12 +134,12 @@ describe('migration', () => {
     const api = fakeApi()
     const store = createSyncStore(s, api)
     await store.start()
-    expect(api.server()[ID]).toBe('2026-07-21T19:00:00.000Z')
+    expect(api.server().checks[ID]).toBe('2026-07-21T19:00:00.000Z')
     expect(s.data.get(MIGRATED_KEY)).toBe('1')
     // second start must not re-enqueue
     const store2 = createSyncStore(s, api)
     await store2.start()
-    expect(api.postOps.mock.calls.filter(([, ops]) => ops.length > 0)).toHaveLength(1)
+    expect(api.postOps.mock.calls.filter(([, ops]) => ops.some((o) => o.op === 'check'))).toHaveLength(1)
   })
 
   it('migration does not overwrite a dose already checked on the server', async () => {
@@ -147,7 +150,7 @@ describe('migration', () => {
     const api = fakeApi({ [ID]: 'server-time' })
     const store = createSyncStore(s, api)
     await store.start()
-    expect(api.server()[ID]).toBe('server-time') // first check wins
+    expect(api.server().checks[ID]).toBe('server-time') // first check wins
   })
 })
 
@@ -161,6 +164,80 @@ describe('setToken', () => {
     store.setToken('tok')
     await vi.waitFor(() => expect(store.status()).toBe('synced'))
     expect(s.data.get(TOKEN_KEY)).toBe('tok')
-    expect(api.fetchChecks).toHaveBeenCalled()
+    expect(api.fetchState).toHaveBeenCalled()
+  })
+})
+
+const GABA: MedDef = {
+  id: 'gabapentin-0000',
+  name: 'Gabapentin',
+  doseText: '2 capsules by mouth',
+  phases: [{ start: '2026-07-24', startSlot: 'am', intervalSlots: 2, count: 3 }],
+}
+
+describe('meds seeding and adoption', () => {
+  it('seeds SEED_MEDS when the server med list is empty', async () => {
+    const s = fakeStorage({ [TOKEN_KEY]: 'tok', [MIGRATED_KEY]: '1' })
+    const api = fakeApi()
+    const store = createSyncStore(s, api)
+    await store.start()
+    expect(api.server().meds.map((m) => m.id)).toEqual(SEED_MEDS.map((m) => m.id))
+    expect(store.meds().map((m) => m.id)).toEqual(SEED_MEDS.map((m) => m.id))
+    expect(JSON.parse(s.data.get(MEDS_KEY)!)).toHaveLength(SEED_MEDS.length)
+  })
+  it('does not seed when the server already has meds, and adopts them', async () => {
+    const s = fakeStorage({ [TOKEN_KEY]: 'tok', [MIGRATED_KEY]: '1' })
+    const api = fakeApi({}, [GABA])
+    const store = createSyncStore(s, api)
+    await store.start()
+    expect(api.server().meds).toEqual([GABA])
+    expect(store.meds()).toEqual([GABA])
+  })
+  it('two devices racing to seed converge to one list', async () => {
+    const api = fakeApi()
+    const a = createSyncStore(fakeStorage({ [TOKEN_KEY]: 'tok', [MIGRATED_KEY]: '1' }), api)
+    const b = createSyncStore(fakeStorage({ [TOKEN_KEY]: 'tok', [MIGRATED_KEY]: '1' }), api)
+    await Promise.all([a.start(), b.start()])
+    expect(api.server().meds.map((m) => m.id)).toEqual(SEED_MEDS.map((m) => m.id))
+  })
+  it('falls back to SEED_MEDS when the meds cache is corrupt and there is no token', () => {
+    const s = fakeStorage({ [MEDS_KEY]: 'not json{{{' })
+    const store = createSyncStore(s, fakeApi())
+    expect(store.meds().map((m) => m.id)).toEqual(SEED_MEDS.map((m) => m.id))
+  })
+})
+
+describe('addMed / deleteMed (online-only)', () => {
+  it('addMed posts immediately and adopts the result', async () => {
+    const s = fakeStorage({ [TOKEN_KEY]: 'tok', [MIGRATED_KEY]: '1' })
+    const api = fakeApi({}, [...SEED_MEDS])
+    const store = createSyncStore(s, api)
+    await store.start()
+    await store.addMed(GABA)
+    expect(store.meds().some((m) => m.id === GABA.id)).toBe(true)
+    expect(store.pendingCount()).toBe(0) // never queued
+  })
+  it('deleteMed removes on server and locally, leaving checks alone', async () => {
+    const s = fakeStorage({ [TOKEN_KEY]: 'tok', [MIGRATED_KEY]: '1' })
+    const api = fakeApi({ [ID]: 't0' }, [...SEED_MEDS, GABA])
+    const store = createSyncStore(s, api)
+    await store.start()
+    await store.deleteMed(GABA.id)
+    expect(store.meds().some((m) => m.id === GABA.id)).toBe(false)
+    expect(store.isChecked(ID)).toBe(true)
+  })
+  it('failure changes nothing locally and rethrows', async () => {
+    const s = fakeStorage({ [TOKEN_KEY]: 'tok', [MIGRATED_KEY]: '1' })
+    const api = fakeApi({}, [...SEED_MEDS])
+    const store = createSyncStore(s, api)
+    await store.start()
+    api.failNext = true
+    await expect(store.addMed(GABA)).rejects.toThrow()
+    expect(store.meds().some((m) => m.id === GABA.id)).toBe(false)
+    expect(store.pendingCount()).toBe(0)
+  })
+  it('throws without a token', async () => {
+    const store = createSyncStore(fakeStorage(), fakeApi())
+    await expect(store.addMed(GABA)).rejects.toThrow('Not connected')
   })
 })

@@ -2,7 +2,7 @@ import { createSignal, onCleanup, onMount, Show } from 'solid-js'
 import './App.css'
 import { todayStr, parseDateStr } from './dates'
 import { getLocalStorage } from './storage'
-import { fetchChecks, postOps } from './api'
+import { fetchState, postOps } from './api'
 import { createSyncStore, type SyncStatus } from './syncStore'
 import MonthGrid from './MonthGrid'
 import DayDetail from './DayDetail'
@@ -17,7 +17,7 @@ const STATUS_LABEL: Record<SyncStatus, string> = {
 }
 
 function App() {
-  const store = createSyncStore(getLocalStorage(), { fetchChecks, postOps })
+  const store = createSyncStore(getLocalStorage(), { fetchState, postOps })
   const today = todayStr()
   const { y, m } = parseDateStr(today)
   const [selected, setSelected] = createSignal(today)
