@@ -1,5 +1,6 @@
 import { createSignal, For, Show } from 'solid-js'
 import type { MedDef } from './schedule'
+import AddMedForm from './AddMedForm'
 import { scheduleSummary } from './summary'
 import type { SyncStore } from './syncStore'
 
@@ -70,6 +71,9 @@ export default function MedsView(props: { store: SyncStore; onBack(): void }) {
         <p class="med-notice">Connect sync to manage medications.</p>
       </Show>
       <For each={props.store.meds()}>{(med) => <MedRow med={med} canManage={canManage()} store={props.store} />}</For>
+      <Show when={canManage()}>
+        <AddMedForm store={props.store} />
+      </Show>
     </div>
   )
 }
